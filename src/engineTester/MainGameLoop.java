@@ -1,42 +1,65 @@
-package renderEngine;
+package engineTester;
 
-import org.lwjgl.LWJGLException;
-import org.lwjgl.opengl.ContextAttribs;
+import models.RawModel;
+import models.TexturedModel;
 import org.lwjgl.opengl.Display;
-import org.lwjgl.opengl.DisplayMode;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.PixelFormat;
+import renderEngine.DisplayManager;
+import renderEngine.Loader;
+import renderEngine.Renderer;
+import shaders.StaticShader;
+import textures.ModelTexture;
 
+public class MainGameLoop {
 
-public class DisplayManager {
+	public static void main(String[] args) {
+		
+		DisplayManager.createDisplay();
+		
+		Loader loader = new Loader();
+		Renderer renderer = new Renderer();
+		StaticShader shader = new StaticShader();
+		
+		
+		float[] vertices = { // vbo
 
-	private static final int WIDTH = 1280;
-	private static final int HEIGHT = 720;
-	private static final int FPS_CAP = 120;
+			//left bottom triangle
+			-0.5f, +0.5f, 0.0f, // v0 - x1, y1, z1
+			-0.5f, -0.5f, 0.0f, // v1 - x2, y2, z2
+			+0.5f, -0.5f, 0.0f, // v2 - x3, y3, z3
+			+0.5f, +0.5f, 0.0f, // v3 - x4, y4, z4
+		};
+		
+		
+		int[] indices = {
+				0,1,3, // top left triangle (v0, v1, v2)
+				3,1,2 // bottom right triangle (v3 v1 v2)
+		};
+		
+		float[] textureCoords = {
+				0,0,
+				0,1,
+				1,1,
+				1,0
+		};
+		
+		RawModel model = loader.loadToVAO(vertices, textureCoords, indices);
+		ModelTexture texture = new ModelTexture(loader.loadTexture("image"));
+		TexturedModel texturedModel = new TexturedModel(model, texture);
+		
+		while(!Display.isCloseRequested()) {	
+			renderer.prepare();
+			//game logic
 
-	public static void createDisplay(){
-
-		ContextAttribs attribs = new ContextAttribs(3,2) /* version of opengl to use */
-				.withForwardCompatible(true)
-				.withProfileCore(true);
-
-		try {
-			Display.setDisplayMode(new DisplayMode(WIDTH,HEIGHT));
-			Display.create(new PixelFormat(), attribs);
-			Display.setTitle("Our First Display!");
-		} catch (LWJGLException e){
-
-			e.printStackTrace();
+			shader.start();
+			renderer.render(texturedModel);
+			shader.stop();
+			DisplayManager.updateDisplay();
 		}
 
-		GL11.glViewport(0, 0, WIDTH, HEIGHT);
+		shader.cleanUp();
+		loader.cleanUp();
+		
+		DisplayManager.closeDisplay();
 	}
-	public static void updateDisplay(){
-		Display.sync( FPS_CAP );
-		Display.update();
-	}
-	public static void closeDisplay(){
 
-		Display.destroy();
-	}
 }
